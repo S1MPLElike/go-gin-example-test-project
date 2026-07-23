@@ -1,0 +1,74 @@
+name: API Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: "187415157"
+          MYSQL_DATABASE: blog
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go 1.13
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.13'
+
+      - name: 安装 Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: 初始化数据库（建表 + 插入测试账号）
+        run: |
+          sudo apt-get update && sudo apt-get install -y mysql-client
+          mysql -h 127.0.0.1 -u root -p187415157 blog < go-gin-example/docs/sql/blog.sql
+
+      - name: 启动 Go 服务
+        run: |
+          cd go-gin-example
+          export GOFLAGS=-mod=vendor
+          go run main.go &
+          sleep 5  # 等服务启动
+
+      - name: 安装 Python 依赖
+        run: pip install -r requestment.txt
+
+      - name: 运行测试
+        run: pytest --tb=short
+
+      - name: 上传 Allure 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results/
