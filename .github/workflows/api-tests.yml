@@ -59,9 +59,14 @@ jobs:
           # 装 Python 依赖
           pip install -r requestment.txt
 
+          # Go mod download（补全 vendor 中缺失的依赖）
+          cd go-gin-example
+          go mod download
+          cd ..
+
           # 后台启动 Go 服务
           cd go-gin-example
-          GOFLAGS=-mod=vendor nohup go run main.go > /tmp/server.log 2>&1 &
+          nohup go run main.go > /tmp/server.log 2>&1 &
           cd ..
 
           # 等 Go 服务启动，最多等 20 秒
@@ -76,14 +81,12 @@ jobs:
             sleep 2
           done
 
-          # 如果服务没起来，打印日志帮助排查
           if [ "$STARTED" = false ]; then
             echo "=== Go 服务启动失败，打印 server.log ==="
             cat /tmp/server.log
             exit 1
           fi
 
-          # 跑测试
           pytest --tb=short
 
       - name: 上传 Allure 报告
