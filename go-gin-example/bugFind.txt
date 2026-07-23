@@ -1,0 +1,27 @@
+bug：
+1. 关于导出标签的接口
+## Bug总结
+### 问题原因
+在 tag_service/tag.go 的 GetAll() 方法中，构建 cache_service.Tag 对象时 漏掉了 Name 参数 ：
+
+### 导致的问题
+- 所有不同 name 参数的请求都生成 相同的缓存键
+- 第一次请求后，后续所有请求都命中同一个缓存
+- 表现为：不管传什么 name 值，返回的都是第一次请求的数据
+### 修复方案
+添加 Name: t.Name 字段：
+
+```
+// 修复后
+cache := cache_service.Tag{
+    Name:   t.Name,      // ✅ 已添加
+    State:  t.State,
+    PageNum:  t.PageNum,
+    PageSize: t.PageSize,
+}
+```
+### 修复后的缓存键生成
+
+2. 关于用c.PostForm 获取 get请求中参数的错误：
+  这个方法不适用于这个方法，获取不到传过来的参数，可以用 c.Query.
+  总结就是用错了接收参数的方法，get请求没有请求体，而原方法就是拿取请求体的参数，应该用 Query 拿取url上的参数。

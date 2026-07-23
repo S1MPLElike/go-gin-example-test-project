@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Go
+go-gin-example/go-gin-example.exe
+
+# Test results
+allure-results/
+
+# IDE
+.idea/
+.vscode/
